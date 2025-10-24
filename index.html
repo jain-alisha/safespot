@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeSpot - Community Crisis Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 8px;
+        }
+
+        .tagline {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .controls {
+            padding: 20px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9ff;
+        }
+
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            background: white;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #map {
+            width: 100%;
+            height: 500px;
+            position: relative;
+        }
+
+        .stats {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .stat-item {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            display: block;
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .form-actions .btn {
+            flex: 1;
+        }
+
+        .leaflet-popup-content {
+            margin: 15px;
+        }
+
+        .popup-content h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .popup-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .severity-low {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .severity-medium {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .severity-high {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .popup-content p {
+            margin: 8px 0;
+            color: #666;
+        }
+
+        .popup-time {
+            font-size: 0.85em;
+            color: #999;
+            font-style: italic;
+        }
+
+        .report-detail {
+            line-height: 1.6;
+        }
+
+        .report-detail h3 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .detail-row {
+            margin: 12px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            min-width: 100px;
+        }
+
+        .detail-value {
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .filter-select {
+                width: 100%;
+            }
+            
+            #map {
+                height: 400px;
+            }
+            
+            .stats {
+                flex-direction: column;
+            }
+            
+            .modal-content {
+                margin: 10% auto;
+                padding: 20px;
+            }
+        }
+
+        .icon {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗺️ SafeSpot</h1>
+            <p class="tagline">Your community's real-time hazard map</p>
+        </header>
+
+        <div class="controls">
+            <button id="addReportBtn" class="btn btn-primary">
+                <span class="icon">📍</span> Report Issue
+            </button>
+            <button id="myLocationBtn" class="btn btn-secondary">
+                <span class="icon">📍</span> My Location
+            </button>
+            <select id="filterCategory" class="filter-select">
+                <option value="all">All Issues</option>
+                <option value="lighting">💡 Broken Lighting</option>
+                <option value="flooding">🌊 Flooding</option>
+                <option value="unsafe-crossing">⚠️ Unsafe Crossing</option>
+                <option value="debris">🚧 Debris/Obstruction</option>
+                <option value="extreme-weather">🌡️ Extreme Weather</option>
+                <option value="other">📌 Other</option>
+            </select>
+        </div>
+
+        <div id="map"></div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-number" id="totalReports">0</span>
+                <span class="stat-label">Active Reports</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="last24h">0</span>
+                <span class="stat-label">Last 24 Hours</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Report an Issue</h2>
+            <form id="reportForm">
+                <div class="form-group">
+                    <label for="category">Issue Type *</label>
+                    <select id="category" required>
+                        <option value="">Select type...</option>
+                        <option value="lighting">💡 Broken Streetlight</option>
+                        <option value="flooding">🌊 Flooding / Water Hazard</option>
+                        <option value="unsafe-crossing">⚠️ Unsafe Pedestrian Crossing</option>
+                        <option value="debris">🚧 Debris / Road Obstruction</option>
+                        <option value="extreme-weather">🌡️ Extreme Weather Shelter</option>
+                        <option value="other">📌 Other Issue</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description *</label>
+                    <textarea id="description" rows="3" required 
+                              placeholder="Brief description of the issue..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="severity">Severity *</label>
+                    <select id="severity" required>
+                        <option value="">Select severity...</option>
+                        <option value="low">Low - Minor inconvenience</option>
+                        <option value="medium">Medium - Significant issue</option>
+                        <option value="high">High - Immediate safety concern</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="anonymous">
+                        Post anonymously
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeView">&times;</span>
+            <div id="reportDetails"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Leaflet Map -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Firebase Config - UPDATE THIS WITH YOUR CONFIG -->
+    <script>
+        // REPLACE THIS WITH YOUR FIREBASE CONFIG
+        const firebaseConfig = {
+          apiKey: "YOUR_API_KEY_HERE",
+          authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+          projectId: "YOUR_PROJECT_ID",
+          storageBucket: "YOUR_PROJECT_ID.appspot.com",
+          messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+          appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        console.log('Firebase initialized successfully!');
+    </script>
+    
+    <!-- Main App Script -->
+    <script>
+        let map;
+        let markers = [];
+        let reports = [];
+        let currentPosition = null;
+        let addingReport = false;
+        let tempMarker = null;
+        let unsubscribe = null;
+
+        const categoryIcons = {
+            lighting: '💡',
+            flooding: '🌊',
+            'unsafe-crossing': '⚠️',
+            debris: '🚧',
+            'extreme-weather': '🌡️',
+            other: '📌'
+        };
+
+        function initMap() {
+            map = L.map('map').setView([33.6846, -117.8265], 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentPosition = [position.coords.latitude, position.coords.longitude];
+                        map.setView(currentPosition, 14);
+                        L.marker(currentPosition, {
+                            icon: L.divIcon({
+                                className: 'user-location-icon',
+                                html: '📍',
+                                iconSize: [30, 30]
+                            })
+                        }).addTo(map).bindPopup('You are here');
+                    },
+                    (error) => {
+                        console.log('Location access denied');
+                    }
+                );
+            }
+
+            loadReportsFromFirestore();
+        }
+
+        function loadReportsFromFirestore() {
+            unsubscribe = db.collection('reports')
+                .orderBy('timestamp', 'desc')
+                .onSnapshot((snapshot) => {
+                    reports = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        reports.push({
+                            id: doc.id,
+                            ...data,
+                            timestamp: data.timestamp.toMillis()
+                        });
+                    });
+                    
+                    displayReports(document.getElementById('filterCategory').value);
+                    console.log(`Loaded ${reports.length} reports from Firestore`);
+                }, (error) => {
+                    console.error('Error loading reports:', error);
+                });
+        }
+
+        async function saveReportToFirestore(report) {
+            try {
+                const firestoreReport = {
+                    ...report,
+                    timestamp: firebase.firestore.Timestamp.fromMillis(report.timestamp)
+                };
+                
+                const docRef = await db.collection('reports').add(firestoreReport);
+                console.log('Report saved to Firestore with ID:', docRef.id);
+                return docRef.id;
+            } catch (error) {
+                console.error('Error saving to Firestore:', error);
+                alert('Error saving report: ' + error.message);
+            }
+        }
+
+        function displayReports(filter = 'all') {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            reports.forEach(report => {
+                if (filter !== 'all' && report.category !== filter) return;
+
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="font-size: 24px; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));">${categoryIcons[report.category]}</div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
+                });
+
+                const marker = L.marker([report.lat, report.lng], { icon })
+                    .addTo(map)
+                    .bindPopup(createPopupContent(report));
+                
+                marker.on('click', () => {
+                    showReportDetails(report);
+                });
+
+                markers.push(marker);
+            });
+
+            updateStats();
+        }
+
+        function createPopupContent(report) {
+            const severityClass = `severity-${report.severity}`;
+            const timeAgo = getTimeAgo(report.timestamp);
+            
+            return `
+                <div class="popup-content">
+                    <h3>${categoryIcons[report.category]} ${getCategoryName(report.category)}</h3>
+                    <span class="popup-badge ${severityClass}">${report.severity.toUpperCase()}</span>
+                    <p><strong>${report.description}</strong></p>
+                    <p class="popup-time">${timeAgo}</p>
+                </div>
+            `;
+        }
+
+        function showReportDetails(report) {
+            const timeAgo = getTimeAgo(report.timestamp);
+            const severityClass = `severity-${report.severity}`;
+            
+            const details = `
+                <div class="report-detail">
+                    <h3>${categoryIcons[report.category]} ${getCategoryName(report.category)}</h3>
+                    <div class="detail-row">
+                        <span class="detail-label">Severity:</span>
+                        <span class="popup-badge ${severityClass}">${report.severity.toUpperCase()}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Description:</span>
+                        <span class="detail-value">${report.description}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Reported:</span>
+                        <span class="detail-value">${timeAgo}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Location:</span>
+                        <span class="detail-value">${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}</span>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('reportDetails').innerHTML = details;
+            document.getElementById('viewModal').style.display = 'block';
+        }
+
+        function getCategoryName(category) {
+            const names = {
+                lighting: 'Broken Lighting',
+                flooding: 'Flooding',
+                'unsafe-crossing': 'Unsafe Crossing',
+                debris: 'Debris/Obstruction',
+                'extreme-weather': 'Extreme Weather',
+                other: 'Other'
+            };
+            return names[category] || category;
+        }
+
+        function getTimeAgo(timestamp) {
+            const now = Date.now();
+            const diff = now - timestamp;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            return `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+
+        function updateStats() {
+            const now = Date.now();
+            const last24h = reports.filter(r => now - r.timestamp < 86400000).length;
+            
+            document.getElementById('totalReports').textContent = reports.length;
+            document.getElementById('last24h').textContent = last24h;
+        }
+
+        document.getElementById('addReportBtn').addEventListener('click', () => {
+            addingReport = true;
+            document.body.style.cursor = 'crosshair';
+            alert('Click anywhere on the map to place your report');
+        });
+
+        document.getElementById('myLocationBtn').addEventListener('click', () => {
+            if (currentPosition) {
+                map.setView(currentPosition, 15);
+            } else {
+                alert('Location not available. Please enable location access.');
+            }
+        });
+
+        document.getElementById('filterCategory').addEventListener('change', (e) => {
+            displayReports(e.target.value);
+        });
+
+        map.on('click', (e) => {
+            if (!addingReport) return;
+
+            const { lat, lng } = e.latlng;
+            
+            if (tempMarker) {
+                map.removeLayer(tempMarker);
+            }
+
+            tempMarker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'temp-marker',
+                    html: '<div style="font-size: 32px;">📍</div>',
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 40]
+                })
+            }).addTo(map);
+
+            document.getElementById('reportModal').style.display = 'block';
+            document.getElementById('reportModal').dataset.lat = lat;
+            document.getElementById('reportModal').dataset.lng = lng;
+            
+            addingReport = false;
+            document.body.style.cursor = 'default';
+        });
+
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const modal = document.getElementById('reportModal');
+            const lat = parseFloat(modal.dataset.lat);
+            const lng = parseFloat(modal.dataset.lng);
+            
+            const newReport = {
+                lat,
+                lng,
+                category: document.getElementById('category').value,
+                description: document.getElementById('description').value,
+                severity: document.getElementById('severity').value,
+                anonymous: document.getElementById('anonymous').checked,
+                timestamp: Date.now()
+            };
+
+            await saveReportToFirestore(newReport);
+            
+            if (tempMarker) {
+                map.removeLayer(tempMarker);
+                tempMarker = null;
+            }
+
+            document.getElementById('reportForm').reset();
+            modal.style.display = 'none';
+            
+            alert('Report submitted successfully!');
+        });
+
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
+                if (tempMarker) {
+                    map.removeLayer(tempMarker);
+                    tempMarker = null;
+                }
+            });
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            document.getElementById('reportModal').style.display = 'none';
+            document.getElementById('reportForm').reset();
+            if (tempMarker) {
+                map.removeLayer(tempMarker);
+                tempMarker = null;
+            }
+        });
+
+        document.getElementById('closeView').addEventListener('click', () => {
+            document.getElementById('viewModal').style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+                if (tempMarker) {
+                    map.removeLayer(tempMarker);
+                    tempMarker = null;
+                }
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        });
+
+        window.addEventListener('load', initMap);
+    </script>
+</body>
+</html>

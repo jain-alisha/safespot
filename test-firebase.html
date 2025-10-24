@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Connection Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .test-item {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ccc;
+        }
+        .test-item.pending {
+            background: #f5f5f5;
+            border-left-color: #999;
+        }
+        .test-item.success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+        .test-item.error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        .status {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .success-icon { color: #4caf50; }
+        .error-icon { color: #f44336; }
+        .pending-icon { color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase Connection Test</h1>
+        <p>This page tests if your Firebase setup is working correctly.</p>
+
+        <div id="test1" class="test-item pending">
+            <div class="status"><span class="pending-icon">⏳</span> Test 1: Firebase SDK Loaded</div>
+            <div class="message">Checking if Firebase is available...</div>
+        </div>
+
+        <div id="test2" class="test-item pending">
+            <div class="status"><span class="pending-icon">⏳</span> Test 2: Firebase Initialized</div>
+            <div class="message">Checking if Firebase app is configured...</div>
+        </div>
+
+        <div id="test3" class="test-item pending">
+            <div class="status"><span class="pending-icon">⏳</span> Test 3: Firestore Connection</div>
+            <div class="message">Checking if Firestore database is accessible...</div>
+        </div>
+
+        <div id="test4" class="test-item pending">
+            <div class="status"><span class="pending-icon">⏳</span> Test 4: Write Test</div>
+            <div class="message">Testing if we can write to the database...</div>
+        </div>
+
+        <div id="test5" class="test-item pending">
+            <div class="status"><span class="pending-icon">⏳</span> Test 5: Read Test</div>
+            <div class="message">Testing if we can read from the database...</div>
+        </div>
+
+        <button onclick="runTests()">Run Tests</button>
+
+        <div class="info" style="margin-top: 30px;">
+            <strong>💡 If tests fail:</strong><br>
+            1. Make sure you've added your Firebase config to <code>firebase-config.js</code><br>
+            2. Check that Firestore is enabled in Firebase Console<br>
+            3. Verify security rules are set to test mode<br>
+            4. Open browser console (F12) for detailed errors
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <script>
+        function updateTest(testId, status, message) {
+            const testDiv = document.getElementById(testId);
+            testDiv.className = `test-item ${status}`;
+            
+            let icon;
+            if (status === 'success') icon = '✅';
+            else if (status === 'error') icon = '❌';
+            else icon = '⏳';
+            
+            testDiv.querySelector('.status span').textContent = icon;
+            testDiv.querySelector('.message').textContent = message;
+        }
+
+        async function runTests() {
+            console.log('Running Firebase connection tests...');
+
+            // Test 1: Firebase SDK
+            try {
+                if (typeof firebase !== 'undefined') {
+                    updateTest('test1', 'success', 'Firebase SDK loaded successfully!');
+                } else {
+                    updateTest('test1', 'error', 'Firebase SDK not found. Check if CDN links are working.');
+                    return;
+                }
+            } catch (error) {
+                updateTest('test1', 'error', 'Error: ' + error.message);
+                return;
+            }
+
+            // Test 2: Firebase Initialized
+            try {
+                const app = firebase.app();
+                if (app && app.options.projectId !== 'YOUR_PROJECT_ID') {
+                    updateTest('test2', 'success', `Firebase initialized! Project: ${app.options.projectId}`);
+                } else {
+                    updateTest('test2', 'error', 'Firebase config not set. Update firebase-config.js with your actual config.');
+                    return;
+                }
+            } catch (error) {
+                updateTest('test2', 'error', 'Firebase not initialized: ' + error.message);
+                return;
+            }
+
+            // Test 3: Firestore Connection
+            try {
+                if (typeof db !== 'undefined') {
+                    updateTest('test3', 'success', 'Firestore database connection established!');
+                } else {
+                    updateTest('test3', 'error', 'Firestore database not initialized.');
+                    return;
+                }
+            } catch (error) {
+                updateTest('test3', 'error', 'Error: ' + error.message);
+                return;
+            }
+
+            // Test 4: Write Test
+            try {
+                const testData = {
+                    test: true,
+                    message: 'Connection test',
+                    timestamp: firebase.firestore.Timestamp.now()
+                };
+                const docRef = await db.collection('connection_tests').add(testData);
+                updateTest('test4', 'success', `Successfully wrote test data! Doc ID: ${docRef.id}`);
+            } catch (error) {
+                updateTest('test4', 'error', `Write failed: ${error.message}. Check security rules.`);
+                console.error('Write error:', error);
+            }
+
+            // Test 5: Read Test
+            try {
+                const snapshot = await db.collection('connection_tests').limit(1).get();
+                if (!snapshot.empty) {
+                    updateTest('test5', 'success', `Successfully read ${snapshot.size} document(s) from database!`);
+                } else {
+                    updateTest('test5', 'success', 'Read successful! (Database is empty, which is normal)');
+                }
+            } catch (error) {
+                updateTest('test5', 'error', `Read failed: ${error.message}. Check security rules.`);
+                console.error('Read error:', error);
+            }
+
+            console.log('All tests completed! Check results above.');
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 500);
+        });
+    </script>
+</body>
+</html>
