@@ -296,7 +296,6 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         category: document.getElementById('category').value,
         description: document.getElementById('description').value,
         severity: document.getElementById('severity').value,
-        anonymous: document.getElementById('anonymous').checked,
         timestamp: Date.now()
     };
 
